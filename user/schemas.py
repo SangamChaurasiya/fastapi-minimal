@@ -1,0 +1,1 @@
+# THe model request(Pydantic Schema) wil be inside this file.
