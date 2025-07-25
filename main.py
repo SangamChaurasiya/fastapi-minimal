@@ -50,19 +50,48 @@ async def delete_product(product_id: int):
     return {"response": "Product Deleted.", "product_id": product_id}
 
 
-# Path Parameters Predefined Values
-class ProductCategory(str, Enum):
-    books = "Books"
-    clothing = "Clothing"
-    electronics = "Electronics"
+# # Path Parameters Predefined Values
+# class ProductCategory(str, Enum):
+#     books = "Books"
+#     clothing = "Clothing"
+#     electronics = "Electronics"
 
 
-@app.get("/products/{category}")
-async def get_products(category: ProductCategory):
-    return {"response": "Products fetched", "category": category}
+# @app.get("/products/{category}")
+# async def get_products(category: ProductCategory):
+#     return {"response": "Products fetched", "category": category}
+
+# # Path Converter
+# @app.get("/files/{file_path:path}")
+# async def read_file(file_path: str):
+#     return {"You requested file at path": file_path}
 
 
-@app.get("/files/{file_path:path}")
-async def read_file(file_path: str):
-    return {"You requested file at path": file_path}
+# # Single Query Parameter
+# @app.get("/products_by_category")
+# async def get_product_by_category(category: ProductCategory):
+#     return {"status": "Ok", "category": category}
 
+
+# # Multiple Query Parameter
+# @app.get("/products_by_category")
+# async def get_product_by_category(category: ProductCategory, limit: int):
+#     return {"status": "Ok", "category": category, "limit": limit}
+
+
+# # Default Query Parameter
+# @app.get("/products_by_category")
+# async def get_product_by_category(category: ProductCategory, limit: int=10):
+#     return {"status": "Ok", "category": category, "limit": limit}
+
+
+# # Optional Query Parameter
+# @app.get("/products_by_category")
+# async def get_product_by_category(limit: int, category: ProductCategory | None = None):
+#     return {"status": "Ok", "category": category, "limit": limit}
+
+
+# # Path and Query Parameter
+# @app.get("/product/{year}")
+# async def product(year: str, category: ProductCategory):
+#     return {"status": "OK", "year": year, "category": category}
