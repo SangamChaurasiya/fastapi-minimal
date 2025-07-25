@@ -58,6 +58,11 @@ class ProductCategory(str, Enum):
 
 
 @app.get("/products/{category}")
-def get_products(category: ProductCategory):
+async def get_products(category: ProductCategory):
     return {"response": "Products fetched", "category": category}
+
+
+@app.get("/files/{file_path:path}")
+async def read_file(file_path: str):
+    return {"You requested file at path": file_path}
 
