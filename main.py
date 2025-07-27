@@ -374,46 +374,80 @@ class Seller(BaseModel):
 
 # ---------------------------------------------------------------
 
-# Attributes with lists of submodels
-class Category(BaseModel):
-    name: str = Field(
-        title="Category Name",
-        description="The name of the product company",
-        max_length=50,
-        min_length=1
-    )
-    description: str | None = Field(
-        default=None,
-        title="Category Description",
-        description="A brief description of the category",
-        max_length=200
-    )
+# # Attributes with lists of submodels
+# class Category(BaseModel):
+#     name: str = Field(
+#         title="Category Name",
+#         description="The name of the product company",
+#         max_length=50,
+#         min_length=1
+#     )
+#     description: str | None = Field(
+#         default=None,
+#         title="Category Description",
+#         description="A brief description of the category",
+#         max_length=200
+#     )
 
+# class Product(BaseModel):
+#     category: list[Category] | None = Field(
+#         default=None,
+#         title="Product Category",
+#         description="The category to which the product belongs"
+#     )
+#     name: str = Field(
+#         title="Product Name",
+#         description="The name of the product",
+#         max_length=100,
+#         min_length=3,
+#         pattern="^[A-Za-z0-9]+$"
+#     )
+#     price: float = Field(
+#         gt=0,
+#         title="Product Price",
+#         description="The price of the product in USD, must be greater than zero"
+#     )
+#     stock: int | None = Field(
+#         default=None,
+#         ge=0,
+#         title="Stock Qunatity",
+#         description="The number of items in stock, must be non-negative."
+#     )
+
+# @app.post("/product")
+# async def create_product(product: Product):
+#     return product
+
+# ---------------------------------------------------------------
+
+# # using Field-level examples
+# class Product(BaseModel):
+#     name: str = Field(examples=["Moto E"])
+#     price: float = Field(examples=[23.56])
+#     stock: int | None = Field(default=None, examples=[23])
+
+# @app.post("/products")
+# async def create_product(product: Product):
+#     return product
+
+# Using Pydantic's json_schema_extra
 class Product(BaseModel):
-    category: list[Category] | None = Field(
-        default=None,
-        title="Product Category",
-        description="The category to which the product belongs"
-    )
-    name: str = Field(
-        title="Product Name",
-        description="The name of the product",
-        max_length=100,
-        min_length=3,
-        pattern="^[A-Za-z0-9]+$"
-    )
-    price: float = Field(
-        gt=0,
-        title="Product Price",
-        description="The price of the product in USD, must be greater than zero"
-    )
-    stock: int | None = Field(
-        default=None,
-        ge=0,
-        title="Stock Qunatity",
-        description="The number of items in stock, must be non-negative."
-    )
+    name: str
+    price: float
+    stock: int | None = None
 
-@app.post("/product")
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "Moto E",
+                    "price": 34.56,
+                    "stock": 20
+                }
+            ]
+        }
+    }
+
+@app.post("/products")
 async def create_product(product: Product):
     return product
