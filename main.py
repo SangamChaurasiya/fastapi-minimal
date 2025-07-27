@@ -1,8 +1,8 @@
 # This is the entry point for our application.
 from enum import Enum
-from fastapi import FastAPI, status, Query, Path
+from fastapi import FastAPI, status, Query, Path, Body
 from typing import Annotated
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, Field
 
 
 app = FastAPI()
@@ -227,13 +227,13 @@ PRODUCTS = [
 #     return new_product
 
 
-# With Pydantic
-# Define the Product model
-class Product(BaseModel):
-    id: int
-    name: str
-    price: float
-    stock: int | None = None
+# # With Pydantic
+# # Define the Product model
+# class Product(BaseModel):
+#     id: int
+#     name: str
+#     price: float
+#     stock: int | None = None
 
 
 # @app.post("/product")
@@ -254,7 +254,70 @@ class Product(BaseModel):
 #     return {"product_id": product_id,
 #             "new_updated_product": new_updated_product}
 
-# Adding Query Parameters
-@app.put("/products/{product_id}")
-async def update_product(product_id: int, new_updated_product: Product, discount: float | None = None):
-    return {"product_id": product_id, "new_updated_product": new_updated_product, "discount": discount}
+# # Adding Query Parameters
+# @app.put("/products/{product_id}")
+# async def update_product(product_id: int, new_updated_product: Product, discount: float | None = None):
+#     return {"product_id": product_id, "new_updated_product": new_updated_product, "discount": discount}
+
+
+# Multiple Body Parameters
+class Product(BaseModel):
+    name: str
+    price: float
+    stock: int | None = None
+
+class Seller(BaseModel):
+    username : str
+    fullname : str | None = None
+
+# @app.post("/product")
+# async def create_product(product: Product, seller: Seller):
+#     return {"product": product, "seller": seller}
+
+# # Make body optional
+# @app.post("/product")
+# async def create_product(product: Product, seller: Seller | None = None):
+#     return {"product": product, "seller": seller}
+
+# # Singular values in body
+# @app.post("/product")
+# async def create_product(product: Product, seller: Seller, sec_key: Annotated[str, Body()]):
+#     return {"product": product, "seller": seller, "sec_key": sec_key}
+
+# Embed a single body parameter
+# # Without Embed
+# @app.post("/product")
+# async def create_product(product: Product):
+#     return product
+
+# # With Embed
+# @app.post("/product")
+# async def create_product(product: Annotated[Product, Body(embed=True)]):
+#     return product
+
+
+# # Pydantic's Field
+# class Product(BaseModel):
+#     name: str = Field(
+#         title="Product Name",
+#         description="The name of the product",
+#         max_length=100,
+#         min_length=3,
+#         pattern="^[A-Za-z0-9]+$"
+#     )
+#     price: float = Field(
+#         gt=0,
+#         title="Product Price",
+#         description="The price of the product in USD, must be greater than zero"
+#     )
+#     stock: int | None = Field(
+#         default=None,
+#         ge=0,
+#         title="Stock Qunatity",
+#         description="The number of items in stock, must be non-negative."
+#     )
+
+# @app.post("/product")
+# async def create_product(product: Product):
+#     return product
+
