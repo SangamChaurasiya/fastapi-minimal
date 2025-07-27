@@ -1,6 +1,6 @@
 # This is the entry point for our application.
 from enum import Enum
-from fastapi import FastAPI, status, Query, Path, Body
+from fastapi import FastAPI, status, Query, Path, Body, Cookie
 from typing import Annotated
 from pydantic import AfterValidator, BaseModel, Field
 
@@ -430,24 +430,137 @@ class Seller(BaseModel):
 # async def create_product(product: Product):
 #     return product
 
-# Using Pydantic's json_schema_extra
-class Product(BaseModel):
-    name: str
-    price: float
-    stock: int | None = None
+# # Using Pydantic's json_schema_extra
+# class Product(BaseModel):
+#     name: str
+#     price: float
+#     stock: int | None = None
 
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "name": "Moto E",
-                    "price": 34.56,
-                    "stock": 20
-                }
-            ]
+#     model_config = {
+#         "json_schema_extra": {
+#             "examples": [
+#                 {
+#                     "name": "Moto E",
+#                     "price": 34.56,
+#                     "stock": 20
+#                 }
+#             ]
+#         }
+#     }
+
+# @app.post("/products")
+# async def create_product(product: Product):
+#     return product
+
+# ---------------------------------------------------------------
+
+# # Cookie Parameter
+# @app.get("/product/recommendations")
+# async def get_recommendations(session_id: Annotated[str | None, Cookie()] = None):
+#     if session_id:
+#         return {"message": f"Recommendations for session {session_id}", "session_id": session_id}
+#     return {"message": "No session ID provided, showing default recommendations"}
+
+# # # To test the above API the following command in the terminal:
+# # curl -H "Cookie: session_id=abc123" http://127.0.0.1:8000/product/recommendations
+# # {"message":"Recommendations for session abc123","session_id":"abc123"}
+
+# ---------------------------------------------------------------
+
+# # Cookie parameter with Pydantic Model
+# class ProductCookies(BaseModel):
+#     session_id: str
+#     preferred_category: str | None = None
+#     tracking_id: str | None = None
+
+
+# @app.get("/products/recommendations")
+# async def get_recommendations(cookies: Annotated[ProductCookies, Cookie()]):
+#     if cookies.session_id:
+#         response = {"session_id": cookies.session_id}
+#         if cookies.preferred_category:
+#             response["message"] = f"Recommendations for {cookies.preferred_category} products"
+#         else:
+#             response["message"] = f"Default recommendations for session {cookies.session_id}"
+#         if cookies.tracking_id:
+#             response["tracking_id"] = cookies.tracking_id
+
+#         return response
+#     return {"message": "No session ID provided, showing default recommendations"}
+
+# # # To test the above API run the below command in the terminal:
+# # curl -H "Cookie: session_id=abc123; preferred_category=Electronics; tracking_id=xyz789" http://1
+# # 27.0.0.1:8000/products/recommendations
+# # {"session_id":"abc123","message":"Recommendations for Electronics products","tracking_id":"xyz789"}
+
+# Using the extra parameters also as not forbidden for the extra parameters
+# curl -H "Cookie: session_id=abc123; preferred_category=Electronics; extra-data=mydata; tracking_id=xyz789" http://127.0.0.1:8000/products/recommendations
+# {"session_id":"abc123","message":"Recommendations for Electronics products","tracking_id":"xyz789"}
+
+# ---------------------------------------------------------------
+
+# # Forbidding Extra Cookies
+# class ProductCookies(BaseModel):
+#     model_config = {"extra": "forbid"} # this does not allow passing extra parameters from the terminal
+#     session_id: str
+#     preferred_category: str | None = None
+#     tracking_id: str | None = None
+
+
+# @app.get("/products/recommendations")
+# async def get_recommendations(cookies: Annotated[ProductCookies, Cookie()]):
+#     if cookies.session_id:
+#         response = {"session_id": cookies.session_id}
+#         if cookies.preferred_category:
+#             response["message"] = f"Recommendations for {cookies.preferred_category} products"
+#         else:
+#             response["message"] = f"Default recommendations for session {cookies.session_id}"
+#         if cookies.tracking_id:
+#             response["tracking_id"] = cookies.tracking_id
+
+#         return response
+#     return {"message": "No session ID provided, showing default recommendations"}
+
+# # # To test the above API run the below command in the terminal:
+# # curl -H "Cookie: session_id=abc123; preferred_category=Electronics; extra-data=mydata; tracking_
+# # id=xyz789" http://127.0.0.1:8000/products/recomme
+# # ndations
+# # {"detail":[{"type":"extra_forbidden","loc":["cookie","extra-data"],"msg":"Extra inputs are not permitted","input":"mydata"}]}
+
+# ---------------------------------------------------------------
+
+# Combining with Body Parameters
+class ProductCookies(BaseModel):
+    model_config = {"extra": "forbid"} # this does not allow passing extra parameters from the terminal
+    session_id: str = Field(title="Session ID", description="User session identifier")
+    preferred_category: str | None = Field(default=None, title="Preferred Category", description="User's preferred product category")
+
+
+class PriceFilter(BaseModel):
+    min_price: float = Field(ge=0, title="Minimum Price", description="Minimum price for recommendations")
+    max_price: float | None = Field(default=None, title="Maximum Price", description="maximum price for recommendations")
+
+
+@app.post("/products/recommendations")
+async def get_recommendations(
+    cookies: Annotated[ProductCookies, Cookie()],
+    price_filter: Annotated[PriceFilter, Body(embed=True)]
+    ):
+    if cookies.session_id:
+        response = {"session_id": cookies.session_id}
+        if cookies.preferred_category:
+            response["category"] = cookies.preferred_category
+
+        response["price_range"] = {
+            "min_price": price_filter.min_price,
+            "max_price": price_filter.max_price
         }
-    }
+        response["message"] = f"Recommendations for session {cookies.session_id} with price range {price_filter.min_price} to {price_filter.max_price or 'unlimited'}"
+        return response
+    return {"message": "No session ID provided, showing default recommendations"}
 
-@app.post("/products")
-async def create_product(product: Product):
-    return product
+# # To test the above API in the terminal run the below command in the terminal:
+# curl -X POST -H "Cookie: session_id=abc123; pre
+# ferred_category=Electronics" -H "Content-Type:application/json" -d "{\"price_filter\":{\"min_price\":50.0,\"max_price\":1000.0}}" http://127.0.0.1:
+# 8000/products/recommendations
+# {"session_id":"abc123","category":"Electronics","price_range":{"min_price":50.0,"max_price":1000.0},"message":"Recommendations for session abc123 with price range 50.0 to 1000.0"}
