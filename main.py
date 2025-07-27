@@ -2,7 +2,7 @@
 from enum import Enum
 from fastapi import FastAPI, status, Query, Path
 from typing import Annotated
-from pydantic import AfterValidator
+from pydantic import AfterValidator, BaseModel
 
 
 app = FastAPI()
@@ -209,12 +209,52 @@ PRODUCTS = [
 #             return product
 #     return {"error": "Product not found"}
 
-# Combining Path and Query Parameter
-@app.get("/products/{product_id}")
-async def get_product(product_id: Annotated[int, Path(gt=0, le=100)], search: Annotated[str|None, Query(max_length=20)] = None):
-    for product in PRODUCTS:
-        if product["id"] == product_id:
-            if search and search.lower() not in product["title"].lower():
-                return {"error": "Product does not match search term"}
-            return product
-    return {"error": "Product not found"}
+# # Combining Path and Query Parameter
+# @app.get("/products/{product_id}")
+# async def get_product(product_id: Annotated[int, Path(gt=0, le=100)], search: Annotated[str|None, Query(max_length=20)] = None):
+#     for product in PRODUCTS:
+#         if product["id"] == product_id:
+#             if search and search.lower() not in product["title"].lower():
+#                 return {"error": "Product does not match search term"}
+#             return product
+#     return {"error": "Product not found"}
+
+
+# # Without Pydantic
+# # Create or Insert Data
+# @app.post("/product")
+# async def create_product(new_product: dict):
+#     return new_product
+
+
+# With Pydantic
+# Define the Product model
+class Product(BaseModel):
+    id: int
+    name: str
+    price: float
+    stock: int | None = None
+
+
+# @app.post("/product")
+# async def create_product(new_product: Product):
+#     return new_product
+
+# # Add new calculated attribute
+# @app.post("/product")
+# async def create_product(new_product: Product):
+#     product_dict = new_product.model_dump()
+#     price_with_tax = new_product.price * 1.18
+#     product_dict.update({"price_with_tax": price_with_tax})
+#     return product_dict
+
+# # Combining Request Body with Path Parameters
+# @app.put("/products/{product_id}")
+# async def update_product(product_id: int, new_updated_product: Product):
+#     return {"product_id": product_id,
+#             "new_updated_product": new_updated_product}
+
+# Adding Query Parameters
+@app.put("/products/{product_id}")
+async def update_product(product_id: int, new_updated_product: Product, discount: float | None = None):
+    return {"product_id": product_id, "new_updated_product": new_updated_product, "discount": discount}
