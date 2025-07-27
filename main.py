@@ -1,6 +1,6 @@
 # This is the entry point for our application.
 from enum import Enum
-from fastapi import FastAPI, status, Query, Path, Body, Cookie
+from fastapi import FastAPI, status, Query, Path, Body, Cookie, Header
 from typing import Annotated
 from pydantic import AfterValidator, BaseModel, Field
 
@@ -529,38 +529,104 @@ class Seller(BaseModel):
 
 # ---------------------------------------------------------------
 
-# Combining with Body Parameters
-class ProductCookies(BaseModel):
-    model_config = {"extra": "forbid"} # this does not allow passing extra parameters from the terminal
-    session_id: str = Field(title="Session ID", description="User session identifier")
-    preferred_category: str | None = Field(default=None, title="Preferred Category", description="User's preferred product category")
+# # Combining with Body Parameters
+# class ProductCookies(BaseModel):
+#     model_config = {"extra": "forbid"} # this does not allow passing extra parameters from the terminal
+#     session_id: str = Field(title="Session ID", description="User session identifier")
+#     preferred_category: str | None = Field(default=None, title="Preferred Category", description="User's preferred product category")
 
 
-class PriceFilter(BaseModel):
-    min_price: float = Field(ge=0, title="Minimum Price", description="Minimum price for recommendations")
-    max_price: float | None = Field(default=None, title="Maximum Price", description="maximum price for recommendations")
+# class PriceFilter(BaseModel):
+#     min_price: float = Field(ge=0, title="Minimum Price", description="Minimum price for recommendations")
+#     max_price: float | None = Field(default=None, title="Maximum Price", description="maximum price for recommendations")
 
 
-@app.post("/products/recommendations")
-async def get_recommendations(
-    cookies: Annotated[ProductCookies, Cookie()],
-    price_filter: Annotated[PriceFilter, Body(embed=True)]
-    ):
-    if cookies.session_id:
-        response = {"session_id": cookies.session_id}
-        if cookies.preferred_category:
-            response["category"] = cookies.preferred_category
+# @app.post("/products/recommendations")
+# async def get_recommendations(
+#     cookies: Annotated[ProductCookies, Cookie()],
+#     price_filter: Annotated[PriceFilter, Body(embed=True)]
+#     ):
+#     if cookies.session_id:
+#         response = {"session_id": cookies.session_id}
+#         if cookies.preferred_category:
+#             response["category"] = cookies.preferred_category
 
-        response["price_range"] = {
-            "min_price": price_filter.min_price,
-            "max_price": price_filter.max_price
-        }
-        response["message"] = f"Recommendations for session {cookies.session_id} with price range {price_filter.min_price} to {price_filter.max_price or 'unlimited'}"
-        return response
-    return {"message": "No session ID provided, showing default recommendations"}
+#         response["price_range"] = {
+#             "min_price": price_filter.min_price,
+#             "max_price": price_filter.max_price
+#         }
+#         response["message"] = f"Recommendations for session {cookies.session_id} with price range {price_filter.min_price} to {price_filter.max_price or 'unlimited'}"
+#         return response
+#     return {"message": "No session ID provided, showing default recommendations"}
 
-# # To test the above API in the terminal run the below command in the terminal:
-# curl -X POST -H "Cookie: session_id=abc123; pre
-# ferred_category=Electronics" -H "Content-Type:application/json" -d "{\"price_filter\":{\"min_price\":50.0,\"max_price\":1000.0}}" http://127.0.0.1:
-# 8000/products/recommendations
-# {"session_id":"abc123","category":"Electronics","price_range":{"min_price":50.0,"max_price":1000.0},"message":"Recommendations for session abc123 with price range 50.0 to 1000.0"}
+# # # To test the above API in the terminal run the below command in the terminal:
+# # curl -X POST -H "Cookie: session_id=abc123; pre
+# # ferred_category=Electronics" -H "Content-Type:application/json" -d "{\"price_filter\":{\"min_price\":50.0,\"max_price\":1000.0}}" http://127.0.0.1:
+# # 8000/products/recommendations
+# # {"session_id":"abc123","category":"Electronics","price_range":{"min_price":50.0,"max_price":1000.0},"message":"Recommendations for session abc123 with price range 50.0 to 1000.0"}
+
+# ---------------------------------------------------------------
+
+# Header Parameters
+
+# Header Parameter
+# @app.get("/products")
+# async def get_products(user_agent: Annotated[str|None, Header()] = None):
+#     return user_agent
+
+# # # To test the above APi run the following command in the terminal:
+# # curl -H "User-Agent: Mozilla/5.0" http://127.0.0.1:8000/products
+# # "Mozilla/5.0"
+
+# ---------------------------------------------------------------
+
+# # Handling the duplicate headers
+# @app.get("/products")
+# async def get_products(x_product_token: Annotated[list[str]|None, Header()] = None):
+#     return {"x_product_token": x_product_token or []}
+
+# # # TO test the above API run the below command in the terminal:
+# # curl -H "X-Product-Token: Mozilla/5.0" -H "X-Product-Token: Mozilla/6.0" http://127.0.0.1:8000/products
+# # {"x_product_token":["Mozilla/5.0","Mozilla/6.0"]}
+
+# ---------------------------------------------------------------
+
+# # Headers with a Pydantic model
+# class Productheaders(BaseModel):
+#     authorization: str
+#     accept_language: str | None = None
+#     x_tracking_id: list[str] = []
+
+# @app.get("/products")
+# async def get_product(headers: Annotated[Productheaders, Header()]):
+#     return {
+#         "headers": headers
+#     }
+
+# # # To test the above API run the following command in the terminal:
+# # curl -H "Authorization: Bearer token123" -H "Accept-Language: en-US" -H "X-Tracking-Id: track1" 
+# # -H "X-Tracking-Id: track2" http://127.0.0.1:8000/
+# # products
+# # {"headers":{"authorization":"Bearer token123","accept_language":"en-US","x_tracking_id":["track1","track2"]}}
+
+# # Allowing the extra headers also-
+# curl -H "Authorization: Bearer token123" -H "Accept-Language: en-US" -H "X-Tracking-Id: track1" -H "X-Tracking-Id: track2" -H "Extra-Header: header1" http://127.0.0.1:8000/products
+# {"headers":{"authorization":"Bearer token123","accept_language":"en-US","x_tracking_id":["track1","track2"]}}
+
+
+# Forbidding extra header
+class Productheaders(BaseModel):
+    model_config = {"extra": 'forbid'}
+    authorization: str
+    accept_language: str | None = None
+    x_tracking_id: list[str] = []
+
+@app.get("/products")
+async def get_product(headers: Annotated[Productheaders, Header()]):
+    return {
+        "headers": headers
+    }
+
+# # To test the above API run the following command in the terminal:
+# curl -H "Authorization: Bearer token123" -H "Accept-Language: en-US" -H "X-Tracking-Id: track1" -H "X-Tracking-Id: track2" -H "Extra-Header: header1" http://127.0.0.1:8000/products
+# {"detail":[{"type":"extra_forbidden","loc":["header","host"],"msg":"Extra inputs are not permitted","input":"127.0.0.1:8000"},{"type":"extra_forbidden","loc":["header","user-agent"],"msg":"Extra inputs are not permitted","input":"curl/8.2.1"},{"type":"extra_forbidden","loc":["header","accept"],"msg":"Extra inputs are not permitted","input":"*/*"},{"type":"extra_forbidden","loc":["header","extra-header"],"msg":"Extra inputs are not permitted","input":"header1"}]}
