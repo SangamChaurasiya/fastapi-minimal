@@ -1,7 +1,7 @@
 # This is the entry point for our application.
 from enum import Enum
 from fastapi import FastAPI, status, Query, Path, Body, Cookie, Header
-from typing import Annotated
+from typing import Annotated, List, Any, Optional
 from pydantic import AfterValidator, BaseModel, Field
 
 
@@ -262,15 +262,15 @@ PRODUCTS = [
 
 # ---------------------------------------------------------------
 
-# Multiple Body Parameters
-class Product(BaseModel):
-    name: str
-    price: float
-    stock: int | None = None
+# # Multiple Body Parameters
+# class Product(BaseModel):
+#     name: str
+#     price: float
+#     stock: int | None = None
 
-class Seller(BaseModel):
-    username : str
-    fullname : str | None = None
+# class Seller(BaseModel):
+#     username : str
+#     fullname : str | None = None
 
 # @app.post("/product")
 # async def create_product(product: Product, seller: Seller):
@@ -454,6 +454,8 @@ class Seller(BaseModel):
 
 # ---------------------------------------------------------------
 
+# # # # Cookie Parameter # # # #
+
 # # Cookie Parameter
 # @app.get("/product/recommendations")
 # async def get_recommendations(session_id: Annotated[str | None, Cookie()] = None):
@@ -567,7 +569,7 @@ class Seller(BaseModel):
 
 # ---------------------------------------------------------------
 
-# Header Parameters
+# # # # Header Parameters # # # #
 
 # Header Parameter
 # @app.get("/products")
@@ -614,19 +616,165 @@ class Seller(BaseModel):
 # {"headers":{"authorization":"Bearer token123","accept_language":"en-US","x_tracking_id":["track1","track2"]}}
 
 
-# Forbidding extra header
-class Productheaders(BaseModel):
-    model_config = {"extra": 'forbid'}
-    authorization: str
-    accept_language: str | None = None
-    x_tracking_id: list[str] = []
+# # Forbidding extra header
+# class Productheaders(BaseModel):
+#     model_config = {"extra": 'forbid'}
+#     authorization: str
+#     accept_language: str | None = None
+#     x_tracking_id: list[str] = []
 
-@app.get("/products")
-async def get_product(headers: Annotated[Productheaders, Header()]):
-    return {
-        "headers": headers
-    }
+# @app.get("/products")
+# async def get_product(headers: Annotated[Productheaders, Header()]):
+#     return {
+#         "headers": headers
+#     }
 
 # # To test the above API run the following command in the terminal:
 # curl -H "Authorization: Bearer token123" -H "Accept-Language: en-US" -H "X-Tracking-Id: track1" -H "X-Tracking-Id: track2" -H "Extra-Header: header1" http://127.0.0.1:8000/products
 # {"detail":[{"type":"extra_forbidden","loc":["header","host"],"msg":"Extra inputs are not permitted","input":"127.0.0.1:8000"},{"type":"extra_forbidden","loc":["header","user-agent"],"msg":"Extra inputs are not permitted","input":"curl/8.2.1"},{"type":"extra_forbidden","loc":["header","accept"],"msg":"Extra inputs are not permitted","input":"*/*"},{"type":"extra_forbidden","loc":["header","extra-header"],"msg":"Extra inputs are not permitted","input":"header1"}]}
+
+# ---------------------------------------------------------------
+
+# # # # # Return Type # # # # #
+# NOTE: There are 2 type of return type:
+# 1. Return Type Annotation (Non-Flexible, For returning Pydantic model objects)
+# 2. Response Model (Flexible, For returning Non-Pydantic model objects)
+
+# NOTE: "response_model" has high priority than "return type annotation"
+
+# # Without Return Type
+# @app.get("/products/")
+# async def get_products():
+#     return [
+#         {"status": "OK"},
+#         {"status": 200}
+#     ]
+
+# # Return Type Annotation
+# @app.get("/products/")
+# async def get_products() -> Product:
+#     return {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5}
+
+# @app.get("/products/")
+# async def get_products() -> Product:
+#     return {"id": 1, "name": "Moto E", "price": 33.44}
+
+# @app.get("/products/")
+# async def get_products() -> Product:
+#     return {"id": 1, "name": "Moto E", "price": 33.44, "description": "This is Moto E"}
+
+# @app.get("/products/")
+# async def get_products() -> List[Product]:
+#     return [
+#         {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5},
+#         {"id": 2, "name": "Redmi 4", "price": 55.33, "stock": 7},
+#     ]
+
+# @app.get("/products/")
+# async def get_products() -> List[Product]:
+#     return [
+#         {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5, "description": "Hello Desc1"},
+#         {"id": 2, "name": "Redmi 4", "price": 55.33, "stock": 7, "description": "Hello Desc2"},
+#     ]
+
+# @app.post("/products/")
+# async def create_product(product: Product) -> Product:
+#     return product
+
+# class ProductOut(BaseModel):
+#     name: str
+#     price: float
+
+
+# # Rweturning different output
+# @app.post("/products/")
+# async def create_product(product: Product) -> ProductOut:
+#     return product
+
+# class BaseUser(BaseModel):
+#     username: str
+#     full_name: str | None = None
+
+
+# class UserIn(BaseUser):
+#     password: str
+
+
+# @app.post("/products/")
+# async def create_user(product: UserIn) -> BaseUser:
+#     return product
+
+# ---------------------------------------------------------------
+
+# Response Model
+
+# # Without response_model parameter
+# @app.get("/products/")
+# async def get_products():
+#     return {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5}
+
+# # With response_model parameter
+# @app.get("/products/", response_model=Product)
+# async def get_products():
+#     return {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5}
+
+# @app.get("/products/", response_model=List[Product])
+# async def get_products():
+#     return [
+#         {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5},
+#         {"id": 2, "name": "Redmi 4", "price": 355.3, "stock": 7}
+#     ]
+
+# @app.get("/products/", response_model=List[Product])
+# async def get_products():
+#     return [
+#         {"id": 1, "name": "Moto E", "price": 33.44, "stock": 5, "description": "Hello Desc1"},
+#         {"id": 2, "name": "Redmi 4", "price": 355.3, "stock": 7, "description": "Hello Desc2"}
+#     ]
+
+# @app.post("/products/", response_model=Product)
+# async def create_product(product: Product):
+#     return product
+
+# # Using response_model and return type annotation together
+# @app.post("/products/", response_model=Product)
+# async def create_product(product: Product) -> Any:
+#     return product
+
+# # disabling the response_model
+# @app.post("/products/", response_model=None)
+# async def create_product(product: Product) -> Any:
+#     return product
+
+# ---------------------------------------------------------------
+
+# # Excluding unset default values
+
+products_db = {
+    "1": {"id": 1, "name": "Laptop", "price": 999.99, "stock": 10, "is_active": True},
+    "2": {"id": 2, "name": "Smartphone", "price": 499.99, "stock": 50, "is_active": False},
+}
+
+class Product(BaseModel):
+    id: int
+    name: str
+    price: float
+    description: Optional[str] = None
+    tax: float = 15.0 # Default tax rate
+
+# # Preventing showing the default values in the response
+# # @app.get("/products/{product_id}", response_model=Product)
+# @app.get("/products/{product_id}", response_model=Product, response_model_exclude_unset=True)
+# async def get_product(product_id: str):
+#     return products_db.get(product_id, {})
+
+
+# # # Including specific fields
+# @app.get("/products/{product_id}", response_model=Product, response_model_include=["name", "price"])
+# async def get_product(product_id: str):
+#     return products_db.get(product_id, {})
+
+# # Excluding specific fields
+@app.get("/products/{product_id}", response_model=Product, response_model_exclude=["tax", "description"])
+async def get_product(product_id: str):
+    return products_db.get(product_id, {})
